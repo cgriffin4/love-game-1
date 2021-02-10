@@ -1,24 +1,21 @@
 io.stdout:setvbuf("no")
 --crtl + ; to launch
 
-
 function love.load()
     fps = 0
     level = 0
     menuCursorY = 1
     menuItems = {"Start Game", "Exit Game"}
 
-    character = {}
-    character.x = 100
-    character.y = 100
-    character.speed = 15
+    local characters = require("models.characters")
+    character = characters[1]
 end
 
 function love.update(dt)
     fps = dt * 100
 
     if level == 0 then
-        if love.keyboard.isDown("down") and menuCursorY < menuItemCount then
+        if love.keyboard.isDown("down") and menuCursorY < #menuItems then
             menuCursorY = menuCursorY + 1
         end
         if love.keyboard.isDown("up") and menuCursorY > 1 then
@@ -66,6 +63,6 @@ function love.draw()
     end
     
     if level == 1 then
-        love.graphics.print("Hello World!", character.x, character.y)
+        character:draw()
     end
 end
