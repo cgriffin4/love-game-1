@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "love.js": "github:Davidobot/love.js"
+  }
+}
