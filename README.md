@@ -29,3 +29,5 @@ LoveWebBuild [https://github.com/schellingb/LoveWebBuilder] - Test to see if bui
 Love.js [https://github.com/Davidobot/love.js] - It builds the website.
 
 Another Kind of World [https://github.com/MadByteDE/Another-Kind-of-World-Remake] - Example game made in Love2D, can check code structure.
+
+List [https://github.com/love2d-community/awesome-love2d]

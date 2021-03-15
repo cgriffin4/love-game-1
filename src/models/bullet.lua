@@ -7,14 +7,15 @@ function Bullet:new(x, y, height, width, speed, angle, lifetime, damage)
     self.height = height
     self.width = width
     self.speed = speed
-    self.angle = (180 / angle) * 3.141592
+    --self.angle = angle * (180 / 3.141592)
+    self.angle = angle
     self.lifetime = lifetime
     self.damage = damage
 end
 
 function Bullet:update(dt)
-    self.x = self.x + math.sin(self.angle) * self.speed * dt
-    self.y = self.y + math.cos(self.angle) * self.speed * dt
+    self.x = self.x + math.cos(self.angle) * self.speed * dt
+    self.y = self.y - math.sin(self.angle) * self.speed * dt
 
     if(self.x < 0 or self.x > love.graphics.getWidth() or self.y < 0 or self.y > love.graphics.getHeight()) then
         self.lifetime = -1
