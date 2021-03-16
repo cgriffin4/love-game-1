@@ -4,11 +4,19 @@ io.stdout:setvbuf("no")
 local bullets = {}
 local debugItems = {}
 local fps = 0
+local joysticks = {}
+local deadzone = 0.3
 local mouse = {0, 0}
 
+local player
+local lastbutton = 'none'
+
 function love.load()
+    love.joystick.loadGamepadMappings( "gamecontrollerdb.txt" )
+
     Object = require "modules.classic"
     require 'models.bullet'
+    require 'models.weapon'
     require 'models.debug'
 
     fps = Debug('fps', 0)
@@ -17,8 +25,9 @@ function love.load()
     menuCursorY = 1
     menuItems = {"Start Game", "Exit Game"}
 
-    local playablecharacters = require("models.playablecharacters")
+    playablecharacters = require("models.playablecharacters")
     player = playablecharacters[1]
+    player.weapon = Weapon(1, 10)
 
     love.mouse.setRelativeMode(true)
     mouseX = Debug('MouseX', mouse[1])
@@ -27,17 +36,20 @@ function love.load()
     table.insert(debugItems, mouseY)
 end
 
-function love.keypressed(key)
-    if key == "space" then
-        table.insert(bullets, Bullet(player.x, player.y, 5, 5, 150, player.angle, 500, 5))
-    end
-end
-
 function love.mousemoved(x, y, dx, dy, istouch)
     mouse[1] = x
     mouse[2] = y
     mouseX:update(x)
     mouseY:update(y) 
+end
+
+function love.joystickadded(joystick)
+    table.insert(joysticks, joystick)
+end
+
+function love.gamepadpressed(joystick, button)
+    print(button)
+    lastbutton = button
 end
 
 function love.update(dt)
@@ -64,6 +76,7 @@ function love.update(dt)
     end
 
     if level == 1 then
+        --temp vars for collision detection
         local x = player.x
         local y = player.y
         
@@ -85,7 +98,49 @@ function love.update(dt)
         end
 
         --Update player aim
-        player:updateAim(mouse[1], mouse[2])
+        if joysticks[1] ~= nil then
+            -- getGamepadAxis returns a value between -1 and 1.
+            -- It returns 0 when it is at rest
+    
+            local axis1X = joysticks[1]:getGamepadAxis("leftx")
+            local axis1Y = joysticks[1]:getGamepadAxis("lefty")
+    
+            local axis2X = joysticks[1]:getGamepadAxis("rightx")
+            local axis2Y = joysticks[1]:getGamepadAxis("righty")
+
+            local triggerRight = joysticks[1]:getGamepadAxis("triggerright")
+
+            if triggerRight > deadzone then
+                local b = player:fire()
+                if b ~= false then
+                    print(b.damage)
+                    table.insert(bullets, b)
+                end
+            end
+            if axis1X > deadzone then
+                player:move(1, dt)
+            elseif axis1X < -1 * deadzone then
+                player:move(3, dt)
+            end
+            if axis1Y < -1 * deadzone then
+                player:move(0, dt)
+            elseif axis1Y > deadzone then
+                player:move(2, dt)
+            end
+            player:updateAimJoystick(axis2X, axis2Y)
+        else
+            --mouse
+            player:updateAimMouse(mouse[1], mouse[2])
+            if love.mouse.isDown(1) then
+                local b = player:fire()
+                if b ~= false then
+                    print(b.damage)
+                    table.insert(bullets, b)
+                end
+            end
+
+        end
+        player:update(dt)
 
         -- Enemy Collision Detection
         for i,enemy in ipairs(enemies)
@@ -127,6 +182,20 @@ end
 function love.draw()
     
     if level == 0 then
+        if joysticks[1] ~= nil then
+            if joysticks[1]:isGamepad() then 
+                love.graphics.print(joysticks[1]:getGamepadMappingString(), 0, 0)
+            else
+                love.graphics.print("false", 0, 0)
+            end
+            love.graphics.print(joysticks[1]:getGamepadAxis("leftx"), 10, 20)
+            love.graphics.print(joysticks[1]:getGamepadAxis("lefty"), 210, 20)
+            love.graphics.print(joysticks[1]:getGamepadAxis("rightx"), 410, 20)
+            love.graphics.print(joysticks[1]:getGamepadAxis("righty"), 10, 40)
+            love.graphics.print(joysticks[1]:getGamepadAxis("triggerleft"), 210, 40)
+            love.graphics.print(joysticks[1]:getGamepadAxis("triggerright"), 410, 40)
+        end
+
         for i=1,#menuItems do
             love.graphics.print(menuItems[i], 100, 100 * i)
         end

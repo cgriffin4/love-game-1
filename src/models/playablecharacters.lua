@@ -3,9 +3,6 @@ local Player = Character:extend()
 
 function Player:new(x, y, height, width, imageSrc, speedMultiplier, health)
     Player.super.new(self, x, y, height, width, imageSrc, speedMultiplier, health)
-    self.slope = 0
-    self.angle = 0
-    self.isForward = 1
 end
 
 function Player:draw()
@@ -30,7 +27,7 @@ function Player:draw()
 end
 
 -- I don't know. Need to translate mouse movement into player angle, then draw player angle visibility, then bullets need leave at that angle
-function Player:updateAim(x, y)
+function Player:updateAimMouse(x, y)
     self.slope = (self.y - y) / (self.x - x)
     local a = math.atan(self.slope)
     if x > self.x then 
@@ -53,6 +50,32 @@ function Player:updateAim(x, y)
         end
     end
 end
+
+function Player:updateAimJoystick(x, y)
+    self.slope = y / x
+    local a = math.atan(self.slope)
+    if x > 0 then
+        self.isForward = 1
+        if y > 0 then
+            --quadrant 4
+            self.angle = 2 * math.pi - a
+        else
+            --quadrant 1
+            self.angle = -1 * a
+        end
+    else
+        self.isForward = -1
+        if self.slope > 0 then
+            --quadrant 2
+            self.angle = math.pi - a
+        else
+            --quadrant 3
+            self.angle = math.pi + (-1 * a)
+        end
+    end
+end
+
+
 
 local bob = Player(100, 100, 25, 25, "images/characters/bob/default.png", 1.5, 400)
 
