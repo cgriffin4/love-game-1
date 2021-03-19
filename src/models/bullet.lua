@@ -1,4 +1,4 @@
-Bullet = Object:extend()
+Bullet = Entity:extend()
 
 --We pass the x and y of the player.
 function Bullet:new(x, y, height, width, speed, angle, lifetime, damage)

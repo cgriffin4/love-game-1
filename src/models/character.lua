@@ -1,5 +1,4 @@
-local Entity = require 'models.entity'
-local Character = Entity:extend()
+Character = Entity:extend()
 
 function Character:new(x, y, height, width, imageSrc, speedMultiplier, health)
     Character.super.new(self, x, y, height, width)
@@ -21,6 +20,9 @@ function Character:new(x, y, height, width, imageSrc, speedMultiplier, health)
     self.slope = 0
     self.angle = 0
     self.isForward = 1
+    --Midpoint for mouse aiming NOTE: need to place somewhere if scaling/resolution change
+    self.mX = self.x + (self.width / 2)
+    self.mY = self.y + (self.height / 2)
 
     self.attack = 0
 end
@@ -31,7 +33,7 @@ end
 
 function Character:draw()
     love.graphics.setColor(self.color.a, self.color.r, self.color.g, self.color.b);
-    love.graphics.draw(self.image, self.x, self.y, 0, self.scale, self.scale, self.width / 2, self.height / 2, 0, 0)
+    love.graphics.draw(self.image, self.x, self.y, 0, self.scale, self.scale)
     love.graphics.setColor(1, 1, 1)
     love.graphics.rectangle("line", self.x, self.y, self.width, self.height)
 end
@@ -61,6 +63,17 @@ function Character:move(direction, dt)
     elseif self.y + self.height > window_height then
         self.y = window_height - self.height
     end
+    
+    --TODO: change after collision detection rework
+    self:setPosition(self.x, self.y)
+end
+
+function Character:setPosition(x, y)
+    self.x = x
+    self.y = y
+    --Midpoint for mouse aiming NOTE: need to place somewhere if scaling/resolution change
+    self.mX = self.x + (self.width / 2)
+    self.mY = self.y + (self.height / 2)
 end
 
 function Character:fire()
@@ -70,7 +83,21 @@ function Character:fire()
     end
 
     self.attack = self.weapon.reload
-    return Bullet(self.x, self.y, 5, 5, 150, self.angle, 500, self.weapon.damage)
-end
 
-return Character
+    --the bullet shouldn't start within character, but outside of them, might be better to use weapon pos/angle later
+    local sX = 0
+    local sY = 0
+    local distance = math.sqrt(((self.width / 2) * (self.width / 2)) + ((self.height / 2) * (self.height / 2))) + 5
+    --Temp - would need to incorporate angles but again gun position might make more sense
+    if self.slope == 0 then
+        sX = self.mX + (distance * self.isForward)
+        sY = self.mY
+    else
+        local dx = distance / math.sqrt(1 + (self.slope * self.slope))
+        local dy = self.slope * dx
+        sX = self.mX + (dx * self.isForward)
+        sY = self.mY + (dy * self.isForward)
+    end
+
+    return Bullet(sX, sY, 5, 5, 150, self.angle, 500, self.weapon.damage)
+end

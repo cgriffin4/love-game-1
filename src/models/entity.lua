@@ -1,5 +1,4 @@
-local Object = require "modules.classic"
-local Entity = Object:extend()
+Entity = Object:extend()
 
 function Entity:new(x, y, height, width)
     self.x=x
@@ -12,4 +11,14 @@ function Entity:draw()
 
 end
 
-return Entity
+function Entity:update()
+
+end
+
+--Checks collision with a provided entity
+function Entity:checkCollision(e)
+    return self.x + self.width > e.x
+        and self.x < e.x + e.width
+        and self.y + self.height > e.y
+        and self.y < e.y + e.height
+end
