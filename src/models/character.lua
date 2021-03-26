@@ -28,10 +28,14 @@ function Character:new(x, y, height, width, imageSrc, speedMultiplier, health)
 end
 
 function Character:update(dt)
+    Character.super.update(self, dt)
+
     self.attack = self.attack - dt
 end
 
 function Character:draw()
+    Character.super.draw(self)
+
     love.graphics.setColor(self.color.a, self.color.r, self.color.g, self.color.b);
     love.graphics.draw(self.image, self.x, self.y, 0, self.scale, self.scale)
     love.graphics.setColor(1, 1, 1)
