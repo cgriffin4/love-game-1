@@ -2,7 +2,6 @@ io.stdout:setvbuf("no")
 --crtl + ; to launch
 
 joysticks = {}
-deadzone = 0.3
 mouse = {0, 0}
 
 local players = {}
@@ -56,13 +55,12 @@ function love.load()
     table.insert(debugItems, mouseY)
 end
 
+--TODO: multiple player controls
+--TODO: joystick removed
+--TODO: player controller choice
 function love.joystickadded(joystick)
     table.insert(joysticks, joystick)
-end
-
-function love.gamepadpressed(joystick, button)
-    print(button)
-    lastbutton = button
+    players[1]:setJoystick(joystick)
 end
 
 function love.mousemoved(x, y, dx, dy, istouch)
@@ -70,6 +68,23 @@ function love.mousemoved(x, y, dx, dy, istouch)
     mouse[2] = y
     mouseX:update(x)
     mouseY:update(y) 
+end
+
+function love.gamepadpressed(joystick, button)
+    print(button)
+    lastbutton = button
+    if game.isPaused then
+        local action = menu:keypressed(key)
+        if action ~= nil then
+            action()
+        end
+    else
+        -- To be used later for single press actions (like maybe a dash)
+        -- TODO: only pass to player controlled by joystick pressed
+        for i=1,#players do
+            players[i]:resolveKeyPress(button)
+        end
+    end
 end
 
 function love.keypressed(key)
@@ -97,62 +112,23 @@ function love.update(dt)
             love.event.quit()
         end
 
-        -- PLAYER
+        -- PLAYER update (movement and attack)
         for i=1,#players do
-            players[i]:update(dt)
-        end
-        local player = players[1]
-        --Update player aim
-        if joysticks[1] ~= nil then
-            -- getGamepadAxis returns a value between -1 and 1.
-            -- It returns 0 when it is at rest
-
-            local axis1X = joysticks[1]:getGamepadAxis("leftx")
-            local axis1Y = joysticks[1]:getGamepadAxis("lefty")
-
-            local axis2X = joysticks[1]:getGamepadAxis("rightx")
-            local axis2Y = joysticks[1]:getGamepadAxis("righty")
-
-            local triggerRight = joysticks[1]:getGamepadAxis("triggerright")
-
-            if triggerRight > deadzone then
-                local b = player:fire()
-                if b ~= false then
-                    print(b.damage)
-                    table.insert(bullets, b)
-                end
+            local b = players[i]:update(mouse, dt)
+            if b ~= nil then
+                table.insert(bullets, b)
             end
-            if axis1X > deadzone then
-                player:move(1, dt)
-            elseif axis1X < -1 * deadzone then
-                player:move(3, dt)
-            end
-            if axis1Y < -1 * deadzone then
-                player:move(0, dt)
-            elseif axis1Y > deadzone then
-                player:move(2, dt)
-            end
-            player:updateAimJoystick(axis2X, axis2Y)
-        else
-            --mouse
-            player:updateAimMouse(mouse[1], mouse[2])
-            if love.mouse.isDown(1) then
-                local b = player:fire()
-                if b ~= false then
-                    print(b.damage)
-                    table.insert(bullets, b)
-                end
-            end
-        end
 
-        -- Player Collision Detection (walls and enemies, probably change enemy later)
-        -- player hit wall
-        for j,wall in ipairs(walls) do
-            player:resolveCollision(wall)
-        end
-        -- player hit enemy
-        for i,enemy in ipairs(enemies) do
-            player:resolveCollision(enemy)
+            -- Player Collision Detection (walls and enemies, probably change enemy later)
+            -- player hit wall
+            for j,wall in ipairs(walls) do
+                players[i]:resolveCollision(wall)
+            end
+            -- player hit enemy
+            for i,enemy in ipairs(enemies) do
+                players[i]:resolveCollision(enemy)
+            end
+
         end
 
         -- Bullets
@@ -162,27 +138,29 @@ function love.update(dt)
             bullet:update(dt)
             if bullet.lifetime < 0 then
                 table.remove(bullets, i)
-            end
-
-            --Wall Collision
-            for j,wall in ipairs(walls) do
-                if bullet:checkCollision(wall) then
-                    table.remove(bullets, i)
+            else
+                --Wall Collision
+                for j,wall in ipairs(walls) do
+                    if bullet:checkCollision(wall) then
+                        table.remove(bullets, i)
+                    end
                 end
-            end
 
-            --Enemy Collision
-            for j,enemy in ipairs(enemies) do
-                if bullet:checkCollision(enemy) then
-                    enemy.health = enemy.health - bullet.damage
-                    table.remove(bullets, i)
+                --Enemy Collision
+                for j,enemy in ipairs(enemies) do
+                    if bullet:checkCollision(enemy) then
+                        enemy.health = enemy.health - bullet.damage
+                        table.remove(bullets, i)
+                    end
                 end
-            end
 
-            --Player Collision
-            if bullet:checkCollision(player) then
-                player.health = player.health - bullet.damage
-                table.remove(bullets, i)
+                --Player Collision
+                for i=1,#players do
+                    if bullet:checkCollision(players[i]) then
+                        players[i].health = players[i].health - bullet.damage
+                        table.remove(bullets, i)
+                    end
+                end
             end
         end
     end

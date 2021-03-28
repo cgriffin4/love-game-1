@@ -29,9 +29,11 @@ function Player:draw()
     love.graphics.rectangle("fill", self.mX, self.mY, 1, 1)
 end
 
-function Player:update(dt)
+function Player:update(mouse, dt)
     Player.super.update(self, dt)
-
+    --return value
+    local bulletFired = nil
+    --keyboard movement
     if love.keyboard.isDown("d") then
         self:move(1, dt)
     end
@@ -44,6 +46,53 @@ function Player:update(dt)
     if love.keyboard.isDown("s") then
         self:move(2, dt)
     end
+
+    --Update player aim
+    if joysticks[1] ~= nil then
+        -- getGamepadAxis returns a value between -1 and 1.
+        -- It returns 0 when it is at rest
+
+        local axis1X = joysticks[1]:getGamepadAxis("leftx")
+        local axis1Y = joysticks[1]:getGamepadAxis("lefty")
+
+        local axis2X = joysticks[1]:getGamepadAxis("rightx")
+        local axis2Y = joysticks[1]:getGamepadAxis("righty")
+
+        local triggerRight = joysticks[1]:getGamepadAxis("triggerright")
+
+        if triggerRight > self.deadzone then
+            local b = self:fire()
+            if b ~= false then
+                print(b.damage)
+                bulletFired = b
+            end
+        end
+        if axis1X > self.deadzone then
+            self:move(1, dt)
+        elseif axis1X < -1 * self.deadzone then
+            self:move(3, dt)
+        end
+        if axis1Y < -1 * self.deadzone then
+            self:move(0, dt)
+        elseif axis1Y > self.deadzone then
+            self:move(2, dt)
+        end
+        self:updateAimJoystick(axis2X, axis2Y)
+    else
+        --mouse
+        if self.mouse == true then
+            self:updateAimMouse(mouse[1], mouse[2])
+            if love.mouse.isDown(1) then
+                local b = self:fire()
+                if b ~= false then
+                    print(b.damage)
+                    bulletFired = b
+                end
+            end
+        end
+    end
+
+    return bulletFired
 end
 
 function Player:resolveKeyPress(key)

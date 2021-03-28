@@ -12,7 +12,7 @@ end
 
 function Game:resume()
     self.isPaused = false
-    love.mouse.setRelativeMode(true)
+    --love.mouse.setRelativeMode(true)
 end
 
 --Not current used

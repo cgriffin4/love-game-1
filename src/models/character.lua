@@ -25,6 +25,14 @@ function Character:new(x, y, height, width, imageSrc, speedMultiplier, health)
     self.mY = self.y + (self.height / 2)
 
     self.attack = 0
+
+    self.mouse = true
+    self.deadzone = 0.3
+end
+
+function Character:setJoystick(joystick)
+    --self.mouse = false
+    self.joystick = joystick
 end
 
 function Character:update(dt)
