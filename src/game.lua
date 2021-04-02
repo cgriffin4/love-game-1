@@ -63,7 +63,6 @@ end
 
 --TODO: add gamepad keys, maybe update profile.controller_data here?
 function Game:characterSelectionKeyPress(key, i)
-    print('game profiles', self.profiles[i].current.character)
     if (key == "right" or key == "d") and self.profiles[i].current.character < #self.playablecharacters then
         self.profiles[i].current.character = self.profiles[i].current.character + 1
     elseif (key == "left" or key == "a") and self.profiles[i].current.character > 1 then
@@ -120,9 +119,9 @@ function Game:characterSelectionDraw()
         vert = vert + 100
         --Ready Status
         if profile.current.ready == true then
-            love.graphics.print("Enter/A for Ready", horz, vert)
-        else
             love.graphics.print("Ready", horz, vert)
+        else
+            love.graphics.print("Enter/A for Ready", horz, vert)
         end
     end
 end

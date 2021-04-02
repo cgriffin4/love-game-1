@@ -1,7 +1,6 @@
 local Entity = Object:extend()
 
 function Entity:new(x, y, height, width)
-    print('There')
     --Draw location/size, and collision/location
     self.x=x
     self.y=y
@@ -40,21 +39,12 @@ end
 function Entity:wasVerticallyAligned(e)
     -- It's basically the collisionCheck function, but with the x and width part removed.
     -- It uses last.y because we want to know this from the previous position
-    print('self last y', self.last.y)
-    print('needs to be less than', e.last.y + e.height)
-    print('self last bottom', self.last.y + self.height)
-    print('needs to be greater than', e.last.y)
-    print(self.last.y < e.last.y + e.height and self.last.y + self.height > e.last.y)
     return self.last.y < e.last.y + e.height and self.last.y + self.height > e.last.y
 end
 
 function Entity:wasHorizontallyAligned(e)
     -- It's basically the collisionCheck function, but with the y and height part removed.
     -- It uses last.x because we want to know this from the previous position
-    print('self last y', self.last.x)
-    print('self width', self.width)
-    print('entity last y', e.last.x)
-    print('entity width', e.width)
     return self.last.x < e.last.x + e.width and self.last.x + self.width > e.last.x
 end
 
