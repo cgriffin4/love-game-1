@@ -1,4 +1,4 @@
-Menu = Object:extend()
+local Menu = Object:extend()
 
 function Menu:new(menuItems)
     self.options = menuItems
@@ -9,6 +9,7 @@ function Menu:display()
     game:pause()
 end
 
+--TODO: add gamepad keys
 function Menu:keypressed(key)
     if (key == "down" or key == "s") and self.selectedIndex < #self.options then
         self.selectedIndex = self.selectedIndex + 1
@@ -27,3 +28,5 @@ function Menu:draw()
 
     love.graphics.print(">>", 80, 100*self.selectedIndex)
 end
+
+return Menu

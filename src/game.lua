@@ -1,8 +1,16 @@
 Game = Object:extend()
 
+local TableConcat = function(t1,t2)
+    for i=1,#t2 do
+        t1[#t1+1] = t2[i]  --corrected bug. if t1[#t1+i] is used, indices will be skipped
+    end
+    return t1
+end
+
 function Game:new()
     self.level = 0
     self.isPaused = true
+    self.constructors = {}
 end
 
 function Game:pause()
@@ -15,14 +23,150 @@ function Game:resume()
     --love.mouse.setRelativeMode(true)
 end
 
---Not current used
+--Way of caching constructors for game data (weapons, menus, playableCharacters (this one is only used during menu so we won't bother caching))
+--TODO: write garbage collection?
+function Game:constructorFor(class_name, data_label)
+    --Check cache, load file if not cached
+    if self.constructors[class_name] == nil then
+        if (class_name == "menu") then
+            self.constructors[class_name] = require("models.menu")
+        elseif (class_name == "weapon") then
+            self.constructors[class_name] = require("models.entities.weapon")
+        elseif (class_name == "enemy") then
+            self.constructors[class_name] = require("models.entities.characters.enemy")
+        end
+    end
+    
+    --If not asking for a constructed item by name, then return constructor itself
+    if data_label == nil then
+        return self.constructors[class_name]
+    end
+    -- Else, lookup data and construct obj to return
+    if (class_name == "weapon") then
+        local weapon = self[class_name .. "s"][data_label]
+        --TODO: make constructors uniform (new methods take same data object that's stored in data files)
+        return self.constructors[class_name](weapon)
+    else
+        --Enemys are handled correctly here
+        --Menus, might be done correctly but still needs testing
+        --TODO: test menus, maybe error handling?
+        return self.constructors[class_name](self[class_name .. "s"][data_label])    
+    end
+end
+
+--TODO: fix this whole process, maybe combine with controller reconnection screen
+function Game:characterSelection()
+    self.level = -1
+    self.playablecharacters = require("data.playablecharacters")
+    --TODO: tie profiles to controllers... somehow
+    self.profiles = { {
+        current = { character = 1, ready = false },
+        controller_data = { kbm = true },
+        save_data = {
+            preferences = { deadzone = 0.3 }
+        }
+    } }
+end
+
+--TODO: add gamepad keys, maybe update profile.controller_data here?
+function Game:characterSelectionKeyPress(key, i)
+    print('game profiles', self.profiles[i].current.character)
+    if (key == "right" or key == "d") and self.profiles[i].current.character < #self.playablecharacters then
+        self.profiles[i].current.character = self.profiles[i].current.character + 1
+    elseif (key == "left" or key == "a") and self.profiles[i].current.character > 1 then
+        self.profiles[i].current.character = self.profiles[i].current.character - 1
+    elseif (key == "enter" or key == "return") then
+        self.profiles[i].current.ready = true
+        --Check if last person ready, then start
+        local allReady = true
+        for i,profile in ipairs(self.profiles) do
+            if profile.current.ready == false then
+                allReady = false
+            end
+        end
+        if allReady == true then
+            self:characterSelectSet()
+            self:loadBiome(self.biomes[1])
+            self:loadLevel(1)
+        end
+    end
+end
+
+--Sets the gameloop players object, hopefully in the same order as the gameloop controllers (but that needs to be reworked anyway)
+function Game:characterSelectSet()
+    local Player = require('models.entities.characters.player')
+
+    --Insert players into gameloop data!
+    local players = {}
+    for i,profile in ipairs(self.profiles) do
+        local char = self.playablecharacters[profile.current.character]
+        table.insert(players, Player(
+            self.playablecharacters[profile.current.character]
+            ,profile.controller_data
+            ,profile.save_data.preferences))
+    end
+    GLObject_set("players", players)
+
+    --clear up player selection data
+    self.playablecharacters = nil
+end
+
+function Game:characterSelectionDraw()
+    for i,profile in ipairs(self.profiles) do
+        --Current selected character
+        local vert = 100
+        local horz = 100 * i
+        local pre = '<'
+        local post = '>'
+        if profile.current.character >= #self.playablecharacters then
+            post = ''
+        elseif profile.current.character <= 1 then
+            pre = ''
+        end
+        love.graphics.print(pre .. self.playablecharacters[profile.current.character].name .. post, horz, vert)
+        vert = vert + 100
+        --Ready Status
+        if profile.current.ready == true then
+            love.graphics.print("Enter/A for Ready", horz, vert)
+        else
+            love.graphics.print("Ready", horz, vert)
+        end
+    end
+end
+
+--Game Data will merge global data (_xxx) with biome (biome.xxx) to be created based on data files
+--Example: enemies found in all biomes will be in game["_enemys"],
+    -- enemies specific to the current biome will be found in game.biome.enemys.
+--Nevermind, going to do it additive for loot tables and enemies will be copied in each biome if needed
+function Game:setGlobalGD(type, data)
+    self["_" .. type] = data
+    if (self.biome[type]) then
+        self[type] = TableConcat(self["_" .. type], self.biome[type])
+    else
+        self[type] = self["_" .. type]
+    end
+end
+
+function Game:loadBiome(biome)
+    self.biome = biome
+    self.enemys = require(biome.path .. ".enemys")
+    --TODO: tilesets, background?
+    --TODO: loot tables (additive: after going through a biome it's permenantly added to the list)
+end
+
+--TODO: make good
 function Game:loadLevel(level)
     self.level = level
     self:resume()
 
+    local Wall = require("models.entities.wall")
+
     if level == 1 then
-        local enemyTable = require("data.enemies")
-        local enemies = { Enemy(enemyTable[1][1], enemyTable[1][2], enemyTable[1][3]) }
+        local enemies = {
+            self:constructorFor("enemy", 1)--,
+            --self:constructorFor("enemy", 2),
+            --self:constructorFor("enemy", 1)
+        }
         local tilemap = {
             {10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
             {10, 2, 2, 2, 2, 2, 2, 2, 2, 10},
@@ -72,8 +216,19 @@ function Game:loadLevel(level)
             end
         end
 
-        return enemies, tilemap, walls, startingPos
+        GLObject_set("enemies", enemies)
+        GLObject_set("tilemap", tilemap)
+        GLObject_set("walls", walls)
+
+        --Method 1:
+        local players = GLObject_get("players")
+        for i,player in ipairs(players) do
+            player:setPosition(startingPos[1], startingPos[2])
+        end
+        --Method 2:
+        GLObject_forEach("players", function(player) player:setPosition(startingPos[1], startingPos[2]) end)
     end
 end
 
+--TODO: make this the only global variable
 game = Game()
