@@ -1,12 +1,5 @@
 Game = Object:extend()
 
-local TableConcat = function(t1,t2)
-    for i=1,#t2 do
-        t1[#t1+1] = t2[i]  --corrected bug. if t1[#t1+i] is used, indices will be skipped
-    end
-    return t1
-end
-
 function Game:new()
     self.level = 0
     self.isPaused = true
@@ -131,19 +124,6 @@ function Game:characterSelectionDraw()
         else
             love.graphics.print("Ready", horz, vert)
         end
-    end
-end
-
---Game Data will merge global data (_xxx) with biome (biome.xxx) to be created based on data files
---Example: enemies found in all biomes will be in game["_enemys"],
-    -- enemies specific to the current biome will be found in game.biome.enemys.
---Nevermind, going to do it additive for loot tables and enemies will be copied in each biome if needed
-function Game:setGlobalGD(type, data)
-    self["_" .. type] = data
-    if (self.biome[type]) then
-        self[type] = TableConcat(self["_" .. type], self.biome[type])
-    else
-        self[type] = self["_" .. type]
     end
 end
 
